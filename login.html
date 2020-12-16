@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	    <title>阳光理赔音视频demo</title>
+	    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	    <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=no, shrink-to-fit=no">
+	    <link rel="stylesheet" href="./css/bootstrap-material-design.min.css">
+	    <link rel="stylesheet" href="./css/index.css">
+	    <link rel="stylesheet" href="./css/room.css">
+	    
+	</head>
+	<body>
+		<div id="root">
+			<div  id="loginModel">
+				<div class="loginInput">
+					姓名：<input type="text" placeholder="请输入英文或数字" id="userId" v-model="userName">
+					<!-- <input type="text" placeholder="请输入房间号" id="roomId" > -->
+					
+					<div class="loginBtn">
+						 <i-button type="primary" shape="circle" style="font-size: 16px;" id="login-btn"  @click="getUserList()">开启SunRtc体验之旅</i-button>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<script src="./js/jquery-5.2.1.min.js"></script>
+		<script src="./js/vue.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/iview.css"/>
+		<script src="./js/vmain.js"></script>
+		<script src="./js/iview.min.js"></script>
+		 <script type="text/javascript" src="js/plugin.js"></script>
+		 <script type="text/javascript" src="js/mui.min.js"></script>
+		<script src="js/tim-js.js"></script>
+		<script src="js/cos-js-sdk-v5.min.js"></script>
+		<script src="js/aliyun-oss-sdk-4.4.4.min.js"></script>
+		<script type="text/javascript" src="js/pusher_player.js" charset="utf-8"></script>
+		<script src="./TRTC/js/popper.js"></script>
+		<script src="./TRTC/js/bootstrap-material-design.js"></script>
+		 <script src="./TRTC/js/lib-generate-test-usersig.min.js"></script>
+		<script src="./TRTC/js/debug/GenerateTestUserSig.js"></script>
+		<script src="./TRTC/js/trtc.js"></script>
+		<script src="./TRTC/js/common.js"></script>
+		<script src="./TRTC/js/rtc-client.js"></script>
+		<script src="./TRTC/js/share-client.js"></script>
+		<script src="./TRTC/js/presetting.js"></script>
+		<script src="./TRTC/js/index.js"></script>
+		<script src="./js/crypto-js.js"></script>
+		<script type="text/javascript">
+			Vue.prototype.$Message.config({
+			  top: 20,
+			  duration:2
+			});
+			var vm = new Vue({
+				el: '#root',
+				data:{
+					userName:''
+				},
+				methods:{
+					getUserList:function(){
+						var self = this
+						if(vm.userName ==""){
+							this.$Message.error("用户名不能为空!");
+							return;
+						}
+						sessionStorage.setItem("userId", vm.userName); 
+						var lobj = {
+							Info:{
+								"To_Account": vm.userName + "-PC",
+								"Action":"Login",
+							}
+							
+						};
+						myajaxTRTC("userStatusPro", lobj, function(res) {
+							// var resData = JSON.parse(res);
+							console.log(res);
+							if(res.resCode=="0000"){
+								var obj = {
+									sdkType:'carclaim'
+								}
+								myajaxTRTC("getIMLogin",obj,function(res){
+									console.log("getIMLogin",obj)
+									if(res.resCode == '0000'){
+										if(vm.userName){
+											var timSDK = {
+												id:parseInt(self.decrypt(res.resultContent.imappid)),
+												key:self.decrypt(res.resultContent.imkey)
+											}
+											sdkDatas = genTestUserSig(vm.userName,timSDK)
+											connect(vm.userName+'-PC',sdkDatas)
+											location.href = "index.html";
+										}else{
+											location.href = "login.html";
+										}
+									}
+									
+								})
+								// connect(vm.userName)
+							}else{
+								
+							}
+						})
+					},
+					decrypt:function(message) {
+						var base64 = CryptoJS.enc.Utf8.parse('sinosig13nde3i!sfac43#a4')
+						var text = message;
+						var decrypt = CryptoJS.TripleDES.decrypt(text, base64, {
+								iv: CryptoJS.enc.Utf8.parse('01234567'),
+								mode: CryptoJS.mode.CBC,
+								padding: CryptoJS.pad.Pkcs7
+							}
+						);
+						//解析数据后转为UTF-8
+						var parseData = decrypt.toString(CryptoJS.enc.Utf8);
+						console.log(parseData)
+						return parseData
+					}
+				}
+			})
+		</script>
+	</body>
+</html>

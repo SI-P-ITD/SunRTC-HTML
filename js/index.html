@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>阳光理赔音视频demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=no, shrink-to-fit=no">
+    <link rel="stylesheet" href="./css/bootstrap-material-design.min.css">
+    <link rel="stylesheet" href="./css/index.css">
+    <link rel="stylesheet" href="./css/room.css">
+    
+</head>
+<style type="text/css">
+	#loading{
+		width:100%;
+		height:100%;
+		background-color: rgba(55,55,55,.6);
+		position: fixed;
+		top:0;
+		left:0;
+		z-index: 99999999;
+	}
+</style>
+<body>
+    <div id="root" >
+		<div id='loading' style="display: none;">
+			<img src="img/loading.gif" alt="" style="width: 50px;height:50;margin: 350px;margin-left:49%">
+		</div>
+		<Row class="headerRow" type="flex">
+			<i-col span="5" class="col-enter headerImage" ><img src="img/yonghu.png" class="headImage "></i-col>
+			<i-col span="12" class="col-enter headerVideo"><img src="img/shipin.png" class="headImage " style="width: 28px;height: 28px;top: 8px;"></i-col>
+			<i-col span="7" class="col-enter headerImage" ><img src="img/tupian.png" class="headImage "></i-col>
+			<span v-if="!isActive" class="phone-btn" @mouseover="phoneMouseOve()"><img src="img/screen-on.png" style="width: 40px;height: 40px;"></span>
+			<span class="phoneIcon" v-if="isActive" @mouseleave="phoneMouseLeave()" @click="openPhone()"> 通讯录<img src="img/screen-on.png" style="width: 40px;height: 40px;"></span>
+		</Row>
+		
+		<div v-if="isPhone" class="phoneWarp" >
+			<!-- <div>
+				<input type="text" placeholder="请输入用户名" id="userId" v-model="userInfo.userName">
+				<input type="text" placeholder="请输入房间号" id="roomId" >
+				<button type="button" @click="getUserList()">确定</button>
+			</div> -->
+			
+			<div style="height: 89%;overflow-y: scroll;">
+				<ul class="userItem" v-for="item in userInfo.userList">
+					<li>
+						<span>用户名：{{item.userName}}</span>
+					</li>
+					<li>
+						<span>用户状态：{{item.userStatus}}</span>
+					</li>
+					<li>
+						<span>客户端：{{item.userSource}}</span>
+					</li>
+					<li class="videoLink" :class="{'noClick':item.userStatus!='在线'}" @click="linkVideo(item)">发起视频</li>
+				</ul >
+			</div>
+		</div>
+		<Row class="mainWarp">
+			
+			<i-col  span="5" class="mainLeft" style="999">
+				<div>
+					<Tabs active-key="key1" >
+						<Tab-pane label="当前通话" key="key1">
+							<div>
+								<ul class="userItem">
+									<li>
+										<span>用户名：张三</span>
+									</li>
+									<li>
+										<span>客户端：pc浏览器</span>
+									</li>
+									<li>
+										<span>摄像头：开</span>
+									</li>
+									<li>
+										<span>麦克风：开</span>
+									</li>
+									<li>
+										<span>信号强度：强</span>
+									</li>
+								</ul>
+								<ul class="userItem">
+									<li>
+										<span>用户名：张三</span>
+									</li>
+									<li>
+										<span>客户端：pc浏览器</span>
+									</li>
+									<li>
+										<span>摄像头：开</span>
+									</li>
+									<li>
+										<span>麦克风：开</span>
+									</li>
+									<li>
+										<span>信号强度：强</span>
+									</li>
+								</ul >
+								<ul class="userItem">
+									<li>
+										<span>用户名：张三</span>
+									</li>
+									<li>
+										<span>客户端：pc浏览器</span>
+									</li>
+									<li>
+										<span>摄像头：开</span>
+									</li>
+									<li>
+										<span>麦克风：开</span>
+									</li>
+									<li>
+										<span>信号强度：强</span>
+									</li>
+								</ul>
+							</div>
+						</Tab-pane>
+					</Tabs>
+				</div>
+			</i-col>
+			<i-col span="19" style="height: 100%;">
+				<Row class="warp-top">
+					<i-col span="17"  class="mainWarp-video-no"	v-if="!isVideo"></i-col>
+					<i-col span="17"  class="mainWarp-video"	v-if="isVideo" style="position: relative;">
+						
+						<div id="room-root" style="position: absolute;right: -24%;">
+							<div class="row-div" style="width: 91%;height: 100%;">
+								<div id="video-grid" style="width: 100%;height: 100%;position: relative;">
+									<!--本地流-->
+									<div id="main-video">
+						                <div id="mask_main" style="height: 115px;width: 171px;position: absolute;z-index: 9;">
+						                	
+						                </div>
+										
+										<!--控制按钮部分-->
+										<div id="main-video-btns" class="row-div" style="z-index: 9;" style="position: absolute!important;bottom: 0!important;left: 34%!important;">
+										    <img v-if="isOpenMic" id="logout-btn"  style="width: 68px; height: 68px" @click="mucChanged"  onClick="event.cancelBubble = true"
+										    	src="./TRTC/img/big-mic-on.png" alt="" title="是否静音">
+										    <img v-else id="logout-btn" style="width: 68px; height: 68px" @click="mucChanged"  onClick="event.cancelBubble = true"
+										    	src="./TRTC/img/big-mic-off.png" alt="" title="是否静音">
+											<img id="photo-btn"  style="width: 68px; height: 68px"  @click="takePhoto"  onClick="event.cancelBubble = true"
+										        src="./TRTC/img/big-photo.png" alt="" title="截取当前视频帧">
+											
+										    <img id="logout-btn" style="width: 68px; height: 68px" @click="leaveRoom" onClick="event.cancelBubble = true"
+										        src="./TRTC/img/logout.png" alt="" title="退出房间">
+										</div>
+									</div>
+									<!--远端流-->
+									<div id="video-list">
+										
+									</div>
+								</div>
+							</div>
+						</div>
+					</i-col>
+					<i-col span="7" class="mainWarp-video" >
+						<div v-if="imgDataList.length !=0">
+							<ul>
+								<li v-for="img in imgDataList">
+									<img src="img.image" alt="">
+								</li>
+							</ul>
+						</div>
+					</i-col>
+				</Row>
+				<Row  class="warp-btom">
+					<i-col span="17" class="mainWarp-chart" >
+						<div class="chartmsg">
+							<ul style="padding: 10px;padding-left: 20px; color: #FFFFFF;" v-if="messageInfo.messageList.length!='0'">
+								<li v-for="mes in messageInfo.messageList" >
+									<span>用户-{{userInfo.userName}}:</span>
+									<span>{{mes.text}}</span>
+								</li>
+							</ul>
+						</div>
+						<div >
+							 <i-input size="large" placeholder="请输入消息" class="chartinput" style="border-radius: 20px;" v-model="messageInfo.message"></i-input>
+							 <i-button type="primary" shape="circle" @click="sendMsg">发送</i-button>
+							 <i-button type="primary" shape="circle" style="margin-left: 25px;"> <Icon type="ios-camera-outline" size="20" ></Icon>上传图片</i-button>
+						</div>
+						<!-- <iframe src="./h5-dist/index.html" width="100%" height="100%" id=""></iframe> -->
+					</i-col>
+					<i-col span="7" class="mainWarp-teach" >
+						
+					</i-col>
+				</Row>
+			</i-col>
+		</Row>
+		
+		<div v-if="iFlogin" id="loginModel">
+			<div class="loginInput">
+				用户名：<input type="text" placeholder="请输入用户名" id="userId" v-model="userInfo.userName">
+				<!-- <input type="text" placeholder="请输入房间号" id="roomId" > -->
+				
+				<div class="loginBtn">
+					 <i-button type="primary" shape="circle" style="font-size: 16px;" id="login-btn"  @click="getUserList()">开启SunRtc体验之旅</i-button>
+				</div>
+			</div>
+		</div>
+		<div id="linkModel" style="display: none;">
+			<div class="alterModel">
+				<div>是否接收视频连线邀请</div>
+				<div style="margin-top: 9%;">
+					<i-button  type="primary" shape="circle" style="font-size: 14px;margin-right: 5px;" @click="acceptLink('1')">接受</i-button>
+					<i-button type="error" shape="circle" style="font-size: 14px;" @click="acceptLink('2')">拒绝</i-button>
+				</div>
+			</div>
+		</div>
+    </div>
+
+    <!--IM部分-->
+	<!-- <iframe src="./h5-dist/index.html" width="100%" height="100%" id=""></iframe> -->
+   <script src="./js/jquery-5.2.1.min.js"></script>
+    <script type="text/javascript" src="js/plugin.js"></script>
+    <script type="text/javascript" src="js/mui.min.js"></script>
+    <script src="./js/popper.js"></script>
+    <script src="./js/bootstrap-material-design.js"></script>
+	<script src="./js/lib-generate-test-usersig.min.js"></script>
+	<script src="./js/debug/GenerateTestUserSig.js"></script>
+	<script src="js/tim-js.js"></script>
+	<script src="js/cos-js-sdk-v5.min.js"></script>
+	<script src="./js/trtc.js"></script>
+	<script src="./js/common.js"></script>
+	<script src="./js/rtc-client.js"></script>
+	<script src="./js/share-client.js"></script>
+	<script src="./js/presetting.js"></script>
+	<script src="./js/index.js"></script>
+	<script src="./js/vue.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/iview.css"/>
+	<script src="./css/iview.min.js"></script>
+	
+	<script src="./js/videoMain.js"></script>
+	<script src="./js/vmain.js"></script>
+	<!-- <script src="./js/vmain.js"></script> -->
+<!-- <script>
+        $(document).ready(function () {
+            $('body').bootstrapMaterialDesign();
+            
+        });
+        $(function(){
+        	var para={
+				"sceneType":"h5",
+				"SDKType":"trtc"
+			}
+			var onSuccess = function(data){
+				if(data.resCode === "0000"){
+					console.log(data.resultContent.appId);
+					console.log(data.resultContent.secretKey);
+					// var appId = Number(data.resultContent.appId);
+					var appId = data.resultContent.appId;
+					login(appId,data.resultContent.secretKey);
+				}
+			}
+			var ajax = new MYAJAX("getSDKParams", "h5", para, onSuccess);
+        })
+		
+    </script> -->
+ <script type="text/javascript">
+    	 $(document).ready(function () {
+    	    $('body').bootstrapMaterialDesign();
+    	   
+		
+    	});
+		
+    </script>
+	
+</body>
+
+</html>

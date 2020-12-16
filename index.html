@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>阳光理赔音视频demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=no, shrink-to-fit=no">
+    <link rel="stylesheet" href="./css/bootstrap-material-design.min.css">
+    <link rel="stylesheet" href="./css/index.css">
+    <link rel="stylesheet" href="./css/room.css">
+    
+</head>
+<style type="text/css">
+	#loading{
+		width:100%;
+		height:100%;
+		background-color: rgba(55,55,55,.6);
+		position: fixed;
+		top:0;
+		left:0;
+		z-index: 99999999;
+	}
+	.text-left{
+		text-align: right !important;
+	}
+	.height-50{
+		height: 50px !important;
+	}
+	
+</style>
+<body>
+    <div id="root" >
+		<div id='loading' style="display: none;">
+			<span style="color: #FFFFFF;font-size: 20px;top: 28%;left: 44%;position: absolute;">正在等待对方接受邀请......</span>
+			<span><img src="img/hangup.png" @click="hangup" style="width: 3.2rem;height: 3rem;padding: 5px;background: red;border-radius: 50%;cursor: pointer;"></span>
+		</div>
+		<Row class="headerRow" type="flex">
+			<i-col span="5" class="col-enter headerImage" ><img src="img/yonghu.png" class="headImage "><span style="position: relative;top: 13px;margin-left: 10px;color: #FFFFFF;">用户名：{{userName}}</span></i-col>
+			<i-col span="14" class="col-enter headerVideo"><img src="img/shipin.png" class="headImage " style="width: 28px;height: 28px;top: 8px;"></i-col>
+			<i-col span="5" class="col-enter headerImage" ><img src="img/tupian.png" class="headImage "></i-col>
+			<span style="position: absolute;top: 5px;right: 10px;" @click="closeOut">
+				<img src="img/logout.png" class="headImage " style="width: 40px;height: 40px;opacity: 0.8;top: -2px;">
+			</span>
+			<span v-if="!isActive" class="phone-btn" @mouseover="phoneMouseOve()"><img src="img/screen-on.png" style="width: 40px;height: 40px;"></span>
+			<span class="phoneIcon" v-if="isActive" @mouseleave="phoneMouseLeave()"> 通讯录<img src="img/screen-on.png" style="width: 40px;height: 40px;"></span>
+		</Row>
+		
+		<div v-if="isPhone" class="phoneWarp" @mouseleave="phoneClose()">
+			<div style="height: 89%;overflow-y: scroll;">
+				<ul class="userItem" v-for="item in userInfo.userList">
+					<li>
+						<span>用户名：{{item.userCode}}</span>
+					</li>
+					<li>
+						<span>用户状态：{{item.userStatus}}</span>
+					</li>
+					<li>
+						<span>客户端：{{item.platform}}</span>
+					</li>
+					<li class="videoLink" :class="{'noClick':item.userStatus!='在线'}" @click="linkVideo(item)">发起视频</li>
+				</ul >
+			</div>
+		</div>
+		<Row class="mainWarp">
+			
+			<i-col  span="5" class="mainLeft" style="z-index: 99;">
+				<div>
+					<Tabs active-key="key1" >
+						<Tab-pane label="当前通话" key="key1">
+							<span style="position: relative;color: #2d8cf0;bottom: 42px;left: 32%;">通话时长：{{videoTime}}</span>
+							<div v-if="memberList.length ==0" style="color: #2d8cf0;margin-top: -10px;padding-left: 10px;font-size: 16px;">暂无视频接入......</div>
+							<div style="margin-top: -39px;" v-if="memberList.length !=0">
+								<ul class="userItem" v-for="item in memberList">
+									<li>
+										<span>用户名：{{item.reqUserName}}</span>
+									</li>
+									<li>
+										<span>客户端：{{item.deviceType}}</span>
+									</li>
+									<li>
+										<span>摄像头：{{item.audio}}</span>
+									</li>
+									<li>
+										<span>麦克风：{{item.video}}</span>
+									</li>
+									<li>
+										<span>信号强度：强</span>
+									</li>
+								</ul>
+								
+							</div>
+						</Tab-pane>
+					</Tabs>
+				</div>
+			</i-col>
+			<i-col span="19" style="height: 100%;">
+				<Row class="warp-top">
+					<i-col span="17"  class="mainWarp-video-no"	v-if="!isVideo"></i-col>
+					<i-col span="17"  class="mainWarp-video"	v-if="isVideo" style="position: relative;">
+						
+						<div id="room-root" style="position: absolute;">
+							
+							<div class="row-div" style="width: 100%;height: 100%;">
+								<div id="video-grid"  style="width: 100%;height: 100%;">
+									<!--本地流-->
+									<div id="main-video" >
+										<!--控制按钮部分-->
+										<div id="main-video-btns" class="row-div" style="z-index: 9;">
+										    <img v-if="isOpenMic" id="logout-btn"  style="width: 68px; height: 68px" @click="mucChanged"  onClick="event.cancelBubble = true"
+										    	src="./TRTC/img/big-mic-on.png" alt="" title="是否静音">
+										    <img v-else id="logout-btn" style="width: 68px; height: 68px" @click="mucChanged"  onClick="event.cancelBubble = true"
+										    	src="./TRTC/img/big-mic-off.png" alt="" title="是否静音">
+											<img id="photo-btn"  style="width: 68px; height: 68px"  @click="takePhoto"  onClick="event.cancelBubble = true"
+										        src="./TRTC/img/big-photo.png" alt="" title="截取当前视频帧">
+											
+										    <img id="logout-btn" style="width: 68px; height: 68px" @click="leaveRoom" onClick="event.cancelBubble = true"
+										        src="./TRTC/img/logout.png" alt="" title="退出房间">
+											<img id="logout-btn" style="width: 68px; height: 68px" @click="switchCamera" onClick="event.cancelBubble = true"
+												 :src="isCamera?'./TRTC/img/big-camera-on.png':'./TRTC/img/big-camera-off.png'" alt="" title="关闭摄像头">
+										</div>
+										
+						                <div id="mask_main" style="height: 115px;width: 171px;position: absolute;z-index: 9;">
+											
+						                </div>
+									</div>
+									<!--远端流-->
+									
+									
+								</div>
+							</div>
+						</div>
+					</i-col>
+					<i-col span="7" class="mainWarp-video" >
+						<div v-if="imgDataList.length !=0" style="idth: 100%;height: 99%;overflow-y: scroll;">
+							<ul style="width: 99%;height: 99%;overflow-y: scroll;" class="imageList">
+								<li v-for="item in imgDataList" >
+									<img :src="item.image" alt="" style="width: 100px;height: 100px;">
+								</li>
+							</ul>
+						</div>
+					</i-col>
+				</Row>
+				<Row  class="warp-btom">
+					<i-col span="17" class="mainWarp-chart" >
+						<div class="chartmsg" style="height: 200px !important;overflow-y: scroll;">
+							<ul id='scrolldIV' style="padding: 10px;padding-left: 20px; color: #FFFFFF;min-height: 200px;overflow-y: scroll;" v-if="messageInfo.messageList.length!='0'">
+								<li v-for="mes in messageInfo.messageList" style="height: 20px;padding-bottom: 10px;" v-bind:class="{'text-left':mes.name==userName,'height-50':mes.type=='1'}">
+									<span v-if="mes.name==userName" style="text-align: left;">
+										<span style="display: inline-flex;">
+											<span v-if="mes.type=='1'"><img :src="mes.file" alt="" style="width: 50px;height: 50px;"></span>
+											<span v-if="mes.type=='2'">{{mes.text}}</span>
+										</span>
+										<span style="color:indianred" style="display: inline-flex;">:{{mes.name}}-用户</span>
+									</span>
+									<span v-if="mes.name!=userName">
+										<span style="color:chartreuse ">用户-{{mes.name}}:</span>
+										<span>
+											<span v-if="mes.type=='1'"><img :src="mes.file" alt="" style="width: 50px;height: 50px;"></span>
+											<span v-if="mes.type=='2'">{{mes.text}}</span>
+										</span>
+									</span>
+								</li>
+							</ul>
+						</div>
+						<div style="margin-top: 28px;">
+							 <i-input size="large" id="sendBtn" placeholder="请输入消息" class="chartinput" style="border-radius: 20px;" v-model="messageInfo.message"></i-input>
+							 <i-button type="primary" shape="circle"  @click="sendMsg" >发送</i-button>
+							  <!-- <i-button type="Default" shape="circle"  style="background: gray !important;border: none;"  v-if="!roomNo">发送</i-button> -->
+							 <input type="file" style="z-inde:99;display: none;" id="testPasteInput"  v-if="isClick" placeholder="上传图片" @change="uploadPic($event)" ref="InputFile" name="files" />	
+							 <!-- <i-button id="testPasteInput" shape="circle" style="background: gray !important;border: none;"  v-if="!isClick">上传图片</i-button> -->
+						</div>
+						<!-- <iframe src="./h5-dist/index.html" width="100%" height="100%" id=""></iframe> -->
+					</i-col>
+					<i-col span="7" class="mainWarp-teach" >
+						
+					</i-col>
+				</Row>
+			</i-col>
+		</Row>
+		
+		<!-- <div v-if="iFlogin" id="loginModel">
+			<div class="loginInput">
+				用户名：<input type="text" placeholder="请输入用户名" id="userId" v-model="userInfo.userName">
+				
+				<div class="loginBtn">
+					 <i-button type="primary" shape="circle" style="font-size: 16px;" id="login-btn"  @click="getUserList()">开启SunRtc体验之旅</i-button>
+				</div>
+			</div>
+		</div> -->
+		<div id="linkModel" style="display: none;">
+			<div class="alterModel">
+				<div>{{reqUserName}}发起视频邀请，是否接收？</div>
+				<div style="margin-top: 9%;">
+					<i-button  type="primary" shape="circle" style="font-size: 14px;margin-right: 5px;" @click="acceptLink('1')">接受</i-button>
+					<i-button type="error" shape="circle" style="font-size: 14px;" @click="acceptLink('2')">拒绝</i-button>
+				</div>
+			</div>
+		</div>
+		<img id="shuiyin" src="homecssimg/imgMark.jpg" style="display: none;" />
+		<div id="myCanvasDiv" style="display: none;"></div>
+		<!--<canvas id="myCanvas" width="480" height="500" ></canvas>-->
+		<div id="musicplayid" style="overflow: hidden; height: 1px; width: 1px;"></div>
+		<div id="Flip" style="text-align: center;display: none;">
+			<img />
+		</div>
+    </div>
+	<script src="./js/GenerateTestUserSig.js"></script>
+	<script src="./js/crypto-js.js"></script>
+	<script src="./js/jquery-5.2.1.min.js"></script>
+	<script src="./js/vue.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/iview.css"/>
+	<script src="./js/vmain.js"></script>
+	<script src="./js/iview.min.js"></script>
+    <script type="text/javascript" src="js/plugin.js"></script>
+    <script type="text/javascript" src="js/mui.min.js"></script>
+	<script src="js/tim-js.js"></script>
+	<script src="js/cos-js-sdk-v5.min.js"></script>
+	<script src="js/aliyun-oss-sdk-4.4.4.min.js"></script>
+	<script type="text/javascript" src="js/pusher_player.js" charset="utf-8"></script>
+	<script src="./TRTC/js/popper.js"></script>
+	<script src="./TRTC/js/bootstrap-material-design.js"></script>
+	 <script src="./TRTC/js/lib-generate-test-usersig.min.js"></script>
+	<script src="./TRTC/js/debug/GenerateTestUserSig.js"></script>
+	<script src="./TRTC/js/trtc.js"></script>
+	<script src="./TRTC/js/common.js"></script>
+	<script src="./TRTC/js/rtc-client.js"></script>
+	<script src="./TRTC/js/share-client.js"></script>
+	<script src="./TRTC/js/presetting.js"></script>
+	<script src="./TRTC/js/index.js"></script>
+	<script src="./js/videoMain.js"></script>
+	
+	<!-- <script type="text/javascript">
+		import { Message } from 'iview'
+	</script> -->
+	<script type="text/javascript">
+    	 $(document).ready(function () {
+    	    $('body').bootstrapMaterialDesign();
+    	   
+			
+    	});
+		Vue.prototype.$Message.config({
+			  top: 20,
+			  duration:2
+			});
+    </script>
+	
+</body>
+
+</html>
